@@ -12,6 +12,8 @@ import passport from 'koa-passport'
 
 import configPassport from './config/passport'
 
+import patient from './routes/patient'
+
 const app = new Koa()
 
 app.keys = ['hampi']
@@ -53,5 +55,7 @@ app.use(async (ctx, next) => {
     }
   }
 })
+
+app.use(patient.routes())
 
 export default app

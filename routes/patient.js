@@ -8,33 +8,34 @@ import {
   createUser
 } from '../db/queries/user'
 
-const router = new Router({ prefix: '/users' })
+const router = new Router({ prefix: '/patients' })
 
-router.post('/', async (ctx, next) => {
+router.post('/', async ctx => {
   try {
     const {
       name,
-      last_name,
-      type,
+      last_name: lastName,
       email,
       password,
       DNI,
-      phone_number
+      phone_number: phoneNumber
     } = ctx.request.body
     const salt = await genSalt()
     const hashed = await hash(password, salt)
     await createUser({
-      type,
-      name,
-      last_name,
+      type: 'patient',
       email,
       password: hashed,
-      DNI,
-      phone_number
+      patient_info: {
+        name,
+        last_name: lastName,
+        DNI,
+        phone_number: phoneNumber
+      }
     })
     ctx.status = 200
-  } catch (e){
-    console.log(`Error creating user on /router/user, ${e}`)
+  } catch (e) {
+    console.log(`Error creating user on /router/patients, ${e}`)
     ctx.status = 500
     ctx.body = {
       error: {
@@ -53,6 +54,17 @@ router.post('/login', async (ctx, next) => {
       return ctx.login(user)
     }
   })(ctx, next)
+})
+
+router.get('/test', async ctx => {
+  const res = ctx.isAuthenticated()
+  console.log({ res })
+  ctx.status = 200
+})
+
+router.get('/out', async ctx => {
+  ctx.logout()
+  ctx.status = 200
 })
 
 export default router

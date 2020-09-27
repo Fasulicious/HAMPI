@@ -8,14 +8,6 @@ const UserSchema = new Schema({
     enum: ['doctor', 'patient'],
     required: true
   },
-  name: {
-    type: String,
-    required: true
-  },
-  last_name: {
-    type: String,
-    required: true
-  },
   email: {
     type: String,
     required: true,
@@ -25,14 +17,23 @@ const UserSchema = new Schema({
     type: String,
     required: true
   },
-  DNI: {
-    type: String,
-    required: true,
-    unique: true
+  patient_info: {
+    name: {
+      type: String
+    },
+    last_name: {
+      type: String
+    },
+    DNI: {
+      type: String,
+      unique: true
+    },
+    phone_number: {
+      type: String
+    }
   },
-  phone_number: {
-    type: String,
-    required: true
+  doctor_info: {
+
   }
 })
 
