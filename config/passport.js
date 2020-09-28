@@ -13,10 +13,10 @@ export default passport => {
     },
     async (username, password, done) => {
       const user = await User.findOne({ email: username })
-      if (!user) return done(null, false, { message: 'Usuario no encontrado ' })
+      if (!user) return done(new Error('User not found'))
       bcrypt.compare(password, user.password, (err, isMatch) => {
-        if (err) return done(null, false, { message: 'Problemas al comparar contraseñas. Intente de nuevo.' })
-        if (!isMatch) return done(null, false, { message: 'Contraseña incorrecta' })
+        if (err) return done(new Error('Error while comparing password'))
+        if (!isMatch) return done(new Error('Missmatch error'))
         return done(null, user)
       })
     })
