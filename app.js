@@ -13,6 +13,7 @@ import passport from 'koa-passport'
 import configPassport from './config/passport'
 
 import patient from './routes/patient'
+import web from './routes/web'
 
 const app = new Koa()
 
@@ -57,5 +58,7 @@ app.use(async (ctx, next) => {
 })
 
 app.use(patient.routes())
+
+app.use(web.routes())
 
 export default app
