@@ -45,33 +45,8 @@ const UserSchema = new Schema({
     medical_history: [String],
     drug_allergy: [String],
     appointments: [{
-      doctor: {
-        type: Schema.Types.ObjectId,
-        ref: 'user'
-      },
-      specialty: String,
-      date: {
-        day: Number,
-        month: Number,
-        year: Number
-      },
-      time: {
-        hour: Number,
-        minutes: Number
-      },
-      qualification: {
-        type: String,
-        enum: ['Like', 'Dislike']
-      },
-      cost: Number,
-      diagnosis: {
-        type: Schema.Types.ObjectId,
-        ref: 'diagnosis'
-      },
-      recipe: {
-        type: Schema.Types.ObjectId,
-        ref: 'recipes'
-      }
+      type: Schema.Types.ObjectId,
+      ref: 'appointment'
     }]
   },
   doctor_info: {
