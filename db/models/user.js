@@ -31,11 +31,14 @@ const UserSchema = new Schema({
     phone_number: {
       type: String
     },
+    /*
     birthdate: {
       day: Number,
       month: Number,
       year: Number
     },
+    */
+    birthdate: Date,
     insurance_type: String,
     location: {
       district: String,

@@ -31,3 +31,5 @@ const RecipeSchema = new Schema({
   signature: String,
   stamp: String
 })
+
+export default mongoose.model('recipe', RecipeSchema)
