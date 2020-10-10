@@ -53,7 +53,34 @@ const UserSchema = new Schema({
     }]
   },
   doctor_info: {
-
+    name: {
+      type: String
+    },
+    last_name: {
+      type: String
+    },
+    DNI: {
+      type: String,
+      unique: true
+    },
+    phone_number: {
+      type: String
+    },
+    experience: {
+      type: String,
+      enum: ['Menor de 5 años', 'Mayor de 5 años']
+    },
+    specialty: {
+      type: String,
+      enum: ['Adolescentología']
+    },
+    introduction: {
+      type: String
+    },
+    active: {
+      type: Boolean,
+      default: false
+    }
   }
 })
 
