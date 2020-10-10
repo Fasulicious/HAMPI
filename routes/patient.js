@@ -277,7 +277,8 @@ router.get('/appointment', async ctx => {
       if (appointment.date > now) upcomingAppointments.push({ ...appointment })
       else appointmentHistory.push({ ...appointment })
     })
-    return {
+    ctx.status = 200
+    ctx.body = {
       appointmentHistory,
       upcomingAppointments
     }
@@ -375,7 +376,8 @@ router.get('/doctor/:id', async ctx => {
     const doctor = await getUser({
       _id: id
     })
-    return doctor
+    ctx.status = 200
+    ctx.body = doctor
   } catch (e) {
     console.log(`Error trying to get doctor on /router/patients/doctor, ${e}`)
     ctx.status = 500

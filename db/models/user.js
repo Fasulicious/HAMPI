@@ -74,9 +74,38 @@ const UserSchema = new Schema({
       type: String,
       enum: ['Adolescentología']
     },
+    payment_method: {
+      type: String,
+      enum: ['Suscripción']
+    },
+    subspecialty: [String],
+    graduates: [String],
+    masters_degrees: [String],
+    doctorate: [String],
+    university: String,
+    workplace: [String],
     introduction: {
       type: String
     },
+    payments: [{
+      date: {
+        type: Date,
+        required: true
+      },
+      status: {
+        type: String,
+        enum: ['Pending', 'Paid'],
+        required: true
+      },
+      amount: {
+        type: Number,
+        required: true
+      }
+    }],
+    appointments: [{
+      type: Schema.Types.ObjectId,
+      ref: 'appointment'
+    }],
     active: {
       type: Boolean,
       default: false
