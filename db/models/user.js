@@ -81,7 +81,7 @@ const UserSchema = new Schema({
     subspecialty: [String],
     graduates: [String],
     masters_degrees: [String],
-    doctorate: [String],
+    doctorates: [String],
     university: String,
     workplace: [String],
     introduction: {

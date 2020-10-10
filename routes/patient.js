@@ -79,8 +79,26 @@ router.post('/login', async (ctx, next) => {
 
 // Logout
 router.get('/logout', async ctx => {
-  ctx.logout()
-  ctx.status = 200
+  try {
+    const auth = ctx.isAuthenticated()
+    if (!auth) {
+      ctx.status = 401
+      ctx.body = {
+        message: 'You have no access to see this profile'
+      }
+      return
+    }
+    ctx.logout()
+    ctx.status = 200
+  } catch (e) {
+    console.log(`Error trying to log out on /router/patients/logout, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to log out'
+      }
+    }
+  }
 })
 
 // Reset Password with mail
