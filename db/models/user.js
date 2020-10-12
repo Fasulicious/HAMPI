@@ -25,19 +25,14 @@ const UserSchema = new Schema({
       type: String
     },
     DNI: {
-      type: String,
-      unique: true
+      type: String
     },
     phone_number: {
       type: String
     },
-    /*
-    birthdate: {
-      day: Number,
-      month: Number,
-      year: Number
+    avatar: {
+      type: String
     },
-    */
     birthdate: Date,
     insurance_type: String,
     location: {
@@ -60,10 +55,12 @@ const UserSchema = new Schema({
       type: String
     },
     DNI: {
-      type: String,
-      unique: true
+      type: String
     },
     phone_number: {
+      type: String
+    },
+    avatar: {
       type: String
     },
     experience: {
