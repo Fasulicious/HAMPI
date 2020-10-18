@@ -92,7 +92,7 @@ router.get('/find/:specialty', async ctx => {
 
 // Login
 router.post('/login', async (ctx, next) => {
-  return passport.authenticate('local', (err, user) => {
+  return passport.authenticate('local', async (err, user) => {
     if (err) {
       console.log(`Error login user on /router/patients/login, ${err}`)
       ctx.status = 500
@@ -103,8 +103,11 @@ router.post('/login', async (ctx, next) => {
       }
     }
     if (!err) {
+      const u = await User.findOne({
+        _id: user._id
+      }, 'patient_info.name patient_info.last_name doctor_info.name doctor_info.last_name')
       ctx.status = 200
-      ctx.body = {}
+      ctx.body = u
       return ctx.login(user)
     }
   })(ctx, next)

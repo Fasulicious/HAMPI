@@ -18,6 +18,10 @@ import {
   updateUser
 } from '../db/queries/user'
 
+import {
+  createDiagnosis
+} from '../db/queries/diagnosis'
+
 const router = new Router({ prefix: '/doctor' })
 
 const upload = multer()
@@ -269,7 +273,21 @@ router.get('/appointment/history', isAuth, async ctx => {
 // Create diagnosis
 router.post('/diagnosis', isAuth, async ctx => {
   try {
-    
+    const {
+      patient,
+      ailments,
+      main_condition: mainCondition,
+      secundary_condition_1: secundaryCondition1,
+      secundary_condition_2: secundaryCondition2
+    } = ctx.request.body
+    await createDiagnosis({
+      patient,
+      ailments,
+      main_condition: mainCondition,
+      secundary_condition_1: secundaryCondition1,
+      secundary_condition_2: secundaryCondition2
+    })
+    ctx.status = 200
   } catch (e) {
     console.log(`Error trying to get appointments on /router/doctor/diagnosis, ${e}`)
     ctx.status = 500
