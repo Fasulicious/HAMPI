@@ -266,6 +266,21 @@ router.get('/appointment/history', isAuth, async ctx => {
   }
 })
 
+// Create diagnosis
+router.post('/diagnosis', isAuth, async ctx => {
+  try {
+    
+  } catch (e) {
+    console.log(`Error trying to get appointments on /router/doctor/diagnosis, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to create diagnosis'
+      }
+    }
+  }
+})
+
 // Create Recipe
 router.post('/recipe', async ctx => {
 

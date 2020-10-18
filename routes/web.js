@@ -1,8 +1,13 @@
 'use strict'
 
 import Router from 'koa-router'
+import passport from 'koa-passport'
 
 import User from '../db/models/user'
+
+import {
+  isAuth
+} from '../middlewares/auth'
 
 import sgMail from '@sendgrid/mail'
 
@@ -83,6 +88,42 @@ router.get('/find/:specialty', async ctx => {
   ])
   ctx.status = 200
   ctx.body = doctors
+})
+
+// Login
+router.post('/login', async (ctx, next) => {
+  return passport.authenticate('local', (err, user) => {
+    if (err) {
+      console.log(`Error login user on /router/patients/login, ${err}`)
+      ctx.status = 500
+      ctx.body = {
+        error: {
+          message: err.message
+        }
+      }
+    }
+    if (!err) {
+      ctx.status = 200
+      ctx.body = {}
+      return ctx.login(user)
+    }
+  })(ctx, next)
+})
+
+// Logout
+router.get('/logout', isAuth, async ctx => {
+  try {
+    ctx.logout()
+    ctx.status = 200
+  } catch (e) {
+    console.log(`Error trying to log out on /router/patients/logout, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to log out'
+      }
+    }
+  }
 })
 
 export default router
