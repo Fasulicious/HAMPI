@@ -17,5 +17,4 @@ export default async (path, folder, id) => {
   const putObjectPromise = s3.putObject(params).promise()
   await putObjectPromise
   fs.unlinkSync(path)
-  return
 }

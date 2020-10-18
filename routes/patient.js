@@ -3,7 +3,17 @@
 import Router from 'koa-router'
 import bcrypt, { genSalt, hash } from 'bcryptjs'
 import passport from 'koa-passport'
+import multer from 'koa-multer'
 import sgMail from '@sendgrid/mail'
+
+import uploadS3 from '../utils'
+
+import Appointment from '../db/models/appointment'
+import Recipe from '../db/models/recipe'
+
+import {
+  isAuth
+} from '../middlewares/auth'
 
 import {
   createUser,
@@ -13,21 +23,19 @@ import {
 
 import {
   getAppointment,
-  getAppointments,
-  updateAppointment
+  updateAppointment,
+  createAppointment
 } from '../db/queries/appointment'
 
 import {
   getDiagnosis
 } from '../db/queries/diagnosis'
 
-import {
-  getRecipe
-} from '../db/queries/recipe'
-
 const router = new Router({ prefix: '/patient' })
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+
+const upload = multer()
 
 // Create
 router.post('/', async ctx => {
@@ -78,16 +86,8 @@ router.post('/login', async (ctx, next) => {
 })
 
 // Logout
-router.get('/logout', async ctx => {
+router.get('/logout', isAuth, async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to see this profile'
-      }
-      return
-    }
     ctx.logout()
     ctx.status = 200
   } catch (e) {
@@ -165,21 +165,15 @@ router.put('/reset-pass', async ctx => {
 })
 
 // Edit profile
-router.put('/', async ctx => {
+router.put('/', isAuth, upload.single('avatar'), async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to edit this profile'
-      }
-      return
-    }
+    await uploadS3(ctx.request.files.avatar.path, 'avatar', ctx.state.user._id)
     const info = ctx.request.body
     const update = {}
     Object.keys(info).map(key => {
       update[`patient_info.${key}`] = info[key]
     })
+    update['patient_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
     const user = await updateUser({
       _id: ctx.state.user._id
     }, {
@@ -192,7 +186,7 @@ router.put('/', async ctx => {
     ctx.status = 200
     ctx.body = user
   } catch (e) {
-    console.log(`Error trying to edit information on /router/patients/, ${e}`)
+    console.log(`Error trying to edit information on /router/patient/, ${e}`)
     ctx.status = 500
     ctx.body = {
       error: {
@@ -203,23 +197,18 @@ router.put('/', async ctx => {
 })
 
 // Get profiñe
-router.get('/me', async ctx => {
+router.get('/me', isAuth, async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to see this profile'
-      }
-      return
-    }
     const user = await getUser({
       _id: ctx.state.user._id
+    }, {
+      email: 1,
+      patient_info: 1
     })
     ctx.status = 200
     ctx.body = user
   } catch (e) {
-    console.log(`Error trying to retrieve information on /router/patients/, ${e}`)
+    console.log(`Error trying to retrieve information on /router/patient/me, ${e}`)
     ctx.status = 500
     ctx.body = {
       error: {
@@ -230,16 +219,8 @@ router.get('/me', async ctx => {
 })
 
 // Reset Password in profile
-router.post('/change-pass', async ctx => {
+router.post('/change-pass', isAuth, async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to see this profile'
-      }
-      return
-    }
     const {
       old_password: oldPassword,
       new_password: newPassword
@@ -274,25 +255,88 @@ router.post('/change-pass', async ctx => {
   }
 })
 
-// Get Appointment
-router.get('/appointment', async ctx => {
+// Create appointment
+router.post('/appointment', isAuth, async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to see these appointments'
-      }
-      return
-    }
-    const appointments = await getAppointments({
-      patient: ctx.state.user._id
+    const {
+      doctor,
+      specialty,
+      date,
+      cost
+    } = ctx.request.body
+    const appointment = await createAppointment({
+      doctor,
+      patient: ctx.state.user._id,
+      specialty,
+      date,
+      cost
     })
+    await updateUser({
+      _id: ctx.state.user._id
+    }, {
+      $push: {
+        'patient_info.appointments': appointment._id
+      }
+    })
+    await updateUser({
+      _id: doctor
+    }, {
+      $push: {
+        'doctor_info.appointments': appointment._id
+      }
+    })
+    ctx.status = 200
+  } catch (e) {
+    console.log(`Error trying to create appointment on /router/patient/appointments, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to create appointment'
+      }
+    }
+  }
+})
+
+// Get Appointment
+router.get('/appointment', isAuth, async ctx => {
+  try {
+    const appointments = await Appointment.aggregate([
+      {
+        $match: {
+          patient: ctx.state.user._id
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'doctor',
+          foreignField: '_id',
+          as: 'doctor'
+        }
+      },
+      {
+        $unwind: '$doctor'
+      },
+      {
+        $project: {
+          doctor: {
+            $concat: ['$doctor.doctor_info.name', ' ', '$doctor.doctor_info.last_name']
+          },
+          specialty: '$specialty',
+          date: '$date',
+          qualification: '$qualification',
+          cost: '$cost',
+          diagnosis: '$diagnosis',
+          recipe: '$recipe'
+        }
+      }
+    ])
     const appointmentHistory = []
     const upcomingAppointments = []
-    const now = new Date()
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
     appointments.map(appointment => {
-      if (appointment.date > now) upcomingAppointments.push({ ...appointment })
+      if (appointment.date > today) upcomingAppointments.push({ ...appointment })
       else appointmentHistory.push({ ...appointment })
     })
     ctx.status = 200
@@ -312,19 +356,17 @@ router.get('/appointment', async ctx => {
 })
 
 // Get Diagnosis
-router.get('/diagnosis/:id', async ctx => {
+router.get('/diagnosis/:id', isAuth, async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to see this diagnosis'
-      }
-      return
-    }
     const { id } = ctx.params
     const diagnosis = await getDiagnosis({
       _id: id
+    }, {
+      patient: 1,
+      ailments: 1,
+      main_condition: 1,
+      secundary_condition_1: 1,
+      secundary_condition_2: 1
     })
     if (diagnosis.patient.toString() !== ctx.state.user._id.toString()) {
       ctx.status = 401
@@ -346,20 +388,46 @@ router.get('/diagnosis/:id', async ctx => {
 })
 
 // Get Recipe
-router.get('/recipe/:id', async ctx => {
+// PENDING
+router.get('/recipe/:id', isAuth, async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to see this recipe'
-      }
-      return
-    }
     const { id } = ctx.params
+    /*
     const recipe = await getRecipe({
       _id: id
     })
+    */
+    const recipe = await Recipe.aggregate([
+      {
+        $match: {
+          _id: id
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'patient',
+          foreignField: '_id',
+          as: 'patient'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'doctor',
+          foreignField: '_id',
+          as: 'doctor'
+        }
+      },
+      {
+        $lookup: {
+          from: 'diagnosis',
+          localField: 'diagnosis',
+          foreignField: '_id',
+          as: 'diagnosis'
+        }
+      }
+    ])
     if (recipe.patient.toString() !== ctx.state.user._id.toString()) {
       ctx.status = 401
       ctx.body = {
@@ -380,20 +448,12 @@ router.get('/recipe/:id', async ctx => {
 })
 
 // Get doctor
-router.get('/doctor/:id', async ctx => {
+router.get('/doctor/:id', isAuth, async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to see this doctor'
-      }
-      return
-    }
     const { id } = ctx.params
     const doctor = await getUser({
       _id: id
-    })
+    }, 'email doctor_info.name doctor_info.last_name doctor_info.phone_number doctor_info.specialty doctor_info.introduction doctor_info.subspecialty doctor_info.graduates doctor_info.masters_degrees doctor_info.doctorates doctor_info.workplace doctor_info.university')
     ctx.status = 200
     ctx.body = doctor
   } catch (e) {
@@ -408,16 +468,8 @@ router.get('/doctor/:id', async ctx => {
 })
 
 // Rate appointment
-router.put('/appointment/:id', async ctx => {
+router.put('/appointment/:id', isAuth, async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to rate this appointment'
-      }
-      return
-    }
     const { id } = ctx.params
     const { qualification } = ctx.request.body
     const appointment = await getAppointment({

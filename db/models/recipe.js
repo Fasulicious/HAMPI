@@ -7,6 +7,10 @@ const RecipeSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'user'
   },
+  doctor: {
+    type: Schema.Types.ObjectId,
+    ref: 'user'
+  },
   appointment: {
     type: Schema.Types.ObjectId,
     ref: 'appointment'
@@ -27,9 +31,7 @@ const RecipeSchema = new Schema({
     days: Number,
     frequency: String,
     observations: String
-  }],
-  signature: String,
-  stamp: String
+  }]
 })
 
 export default mongoose.model('recipe', RecipeSchema)

@@ -2,6 +2,8 @@
 
 import Router from 'koa-router'
 
+import User from '../db/models/user'
+
 import sgMail from '@sendgrid/mail'
 
 const router = new Router({ prefix: '/web' })
@@ -32,6 +34,55 @@ router.post('/contact', async ctx => {
       }
     }
   }
+})
+
+router.get('/find/:specialty', async ctx => {
+  const {
+    specialty
+  } = ctx.params
+  const doctors = await User.aggregate([
+    {
+      $match: {
+        'doctor_info.specialty': specialty,
+        'doctor_info.active': true
+      }
+    },
+    {
+      $lookup:
+        {
+          from: 'appointments',
+          localField: 'doctor_info.appointments',
+          foreignField: '_id',
+          as: 'appointments'
+        }
+    },
+    {
+      $addFields: {
+        rating: {
+          $size: {
+            $filter: {
+              input: '$appointments',
+              as: 'apps',
+              cond: { $eq: ['$$apps.qualification', 'Like'] }
+            }
+          }
+        }
+      }
+    },
+    {
+      $project: {
+        avatar: '$doctor_info.avatar',
+        name: '$doctor_info.name',
+        last_name: '$doctor_info.last_name',
+        specialty: '$doctor_info.specialty',
+        experience: '$doctor_info.experience',
+        introduction: '$doctor_info.introduction',
+        rating: '$rating'
+      }
+    }
+  ])
+  ctx.status = 200
+  ctx.body = doctors
 })
 
 export default router

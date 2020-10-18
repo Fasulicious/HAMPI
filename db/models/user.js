@@ -45,6 +45,10 @@ const UserSchema = new Schema({
     appointments: [{
       type: Schema.Types.ObjectId,
       ref: 'appointment'
+    }],
+    children: [{
+      height: Number,
+      weight: Number
     }]
   },
   doctor_info: {
@@ -63,13 +67,16 @@ const UserSchema = new Schema({
     avatar: {
       type: String
     },
+    sign_stamp: {
+      type: String
+    },
     experience: {
       type: String,
       enum: ['Menor de 5 años', 'Mayor de 5 años']
     },
     specialty: {
       type: String,
-      enum: ['Adolescentología']
+      enum: ['adolescentologia', 'cirugia']
     },
     payment_method: {
       type: String,

@@ -35,7 +35,9 @@ const config = {
 configPassport(passport)
 
 app.use(cors())
-app.use(body())
+app.use(body({
+  multipart: true
+}))
 app.use(logger())
 app.use(helmet())
 app.use(compress())

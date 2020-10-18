@@ -12,21 +12,13 @@ const AppointmentSchema = new Schema({
     ref: 'user'
   },
   specialty: String,
-  /*
-  date: {
-    day: Number,
-    month: Number,
-    year: Number
-  },
-  time: {
-    hour: Number,
-    minutes: Number
-  },
-  */
   date: Date,
   qualifitacion: {
     type: String,
     enum: ['Like', 'Dislike']
+  },
+  cost: {
+    type: Number
   },
   diagnosis: {
     type: Schema.Types.ObjectId,

@@ -1,7 +1,16 @@
 'use strict'
 
 import Router from 'koa-router'
+import multer from 'koa-multer'
 import bcrypt, { genSalt, hash } from 'bcryptjs'
+
+import uploadS3 from '../utils'
+
+import Appointment from '../db/models/appointment'
+
+import {
+  isAuth
+} from '../middlewares/auth'
 
 import {
   createUser,
@@ -9,11 +18,9 @@ import {
   updateUser
 } from '../db/queries/user'
 
-import {
-  getAppointments
-} from '../db/queries/appointment'
-
 const router = new Router({ prefix: '/doctor' })
+
+const upload = multer()
 
 // Create
 router.post('/', async ctx => {
@@ -26,7 +33,7 @@ router.post('/', async ctx => {
     const salt = await genSalt()
     const hashed = await hash(password, salt)
     await createUser({
-      type: 'patient',
+      type: 'doctor',
       email,
       password: hashed,
       doctor_info: doctorInfo
@@ -44,21 +51,26 @@ router.post('/', async ctx => {
 })
 
 // Edit profile
-router.put('/', async ctx => {
+router.put('/', isAuth, upload.fields([
+  {
+    name: 'avatar'
+  },
+  {
+    name: 'sign_stamp'
+  }
+]), async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to edit this profile'
-      }
-      return
+    const keys = Object.keys(ctx.request.files)
+    for (const key of keys) {
+      await uploadS3(ctx.request.files[key].path, key, ctx.state.user._id)
     }
     const info = ctx.request.body
     const update = {}
     Object.keys(info).map(key => {
       update[`doctor_info.${key}`] = info[key]
     })
+    update['doctor_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
+    update['doctor_info.sign_stamp'] = `https://mindtec-hampi.s3.amazonaws.com/sign_stamp/${ctx.state.user._id}`
     const user = await updateUser({
       _id: ctx.state.user._id
     }, {
@@ -82,18 +94,13 @@ router.put('/', async ctx => {
 })
 
 // Get profile
-router.get('/me', async ctx => {
+router.get('/me', isAuth, async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to see this profile'
-      }
-      return
-    }
     const user = await getUser({
       _id: ctx.state.user._id
+    }, {
+      email: 1,
+      doctor_info: 1
     })
     ctx.status = 200
     ctx.body = user
@@ -109,16 +116,8 @@ router.get('/me', async ctx => {
 })
 
 // Reset Password in profile
-router.post('/change-pass', async ctx => {
+router.post('/change-pass', isAuth, async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to see this profile'
-      }
-      return
-    }
     const {
       old_password: oldPassword,
       new_password: newPassword
@@ -154,19 +153,11 @@ router.post('/change-pass', async ctx => {
 })
 
 // Get Payments
-router.get('/payment', async ctx => {
+router.get('/payment', isAuth, async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to see this profile'
-      }
-      return
-    }
     const payments = await getUser({
       _id: ctx.state.user._id
-    }, 'payments')
+    }, 'doctor_info.payments')
     ctx.status = 200
     ctx.body = payments
   } catch (e) {
@@ -180,30 +171,92 @@ router.get('/payment', async ctx => {
   }
 })
 
-// Get appointments
-router.get('/appointment', async ctx => {
+// Get todays appointments
+router.get('/appointment/:timestamp', isAuth, async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to see these appointments'
+    const { timestamp } = ctx.params
+    const appointments = await Appointment.aggregate([
+      {
+        $match: {
+          doctor: ctx.state.user._id
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'patient',
+          foreignField: '_id',
+          as: 'patient'
+        }
+      },
+      {
+        $unwind: '$patient'
+      },
+      {
+        $project: {
+          patient: {
+            $concat: ['$patient.patient_info.name', ' ', '$patient.patient_info.last_name']
+          },
+          date: '$date'
+        }
       }
-      return
+    ])
+    const today = new Date(timestamp)
+    const tomorrow = new Date(timestamp + 24 * 60 * 60 * 1000)
+    const todayAppoinments = appointments.filter(appointment => appointment.date > today && appointment.date < tomorrow)
+    ctx.status = 200
+    ctx.body = todayAppoinments
+  } catch (e) {
+    console.log(`Error trying to get appointments on /router/doctor/appointment, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to get appointments'
+      }
     }
-    const appointments = await getAppointments({
-      doctor: ctx.state.user._id
-    })
-    const appointmentHistory = []
-    // const upcomingAppointments = []
-    const now = new Date()
-    appointments.map(appointment => {
-      if (appointment.date < now) appointmentHistory.push({ ...appointment })
-    })
+  }
+})
+
+// Get appointments history
+router.get('/appointment/history', isAuth, async ctx => {
+  try {
+    const appointments = await Appointment.aggregate([
+      {
+        $match: {
+          doctor: ctx.state.user._id
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'patient',
+          foreignField: '_id',
+          as: 'patient'
+        }
+      },
+      {
+        $unwind: '$patient'
+      },
+      {
+        $project: {
+          patient: {
+            $concat: ['$patient.patient_info.name', ' ', '$patient.patient_info.last_name']
+          },
+          date: '$date',
+          qualification: '$qualification',
+          cost: '$cost',
+          diagnosis: '$diagnosis',
+          recipe: '$recipe'
+        }
+      }
+    ])
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const appointmentHistory = appointments.filter(appointment => appointment.date < today)
     ctx.status = 200
     ctx.body = appointmentHistory
   } catch (e) {
-    console.log(`Error trying to get appointments on /router/doctor/appointment, ${e}`)
+    console.log(`Error trying to get appointments on /router/doctor/appointment/history, ${e}`)
     ctx.status = 500
     ctx.body = {
       error: {
@@ -219,20 +272,12 @@ router.post('/recipe', async ctx => {
 })
 
 // Get patient
-router.get('/patient/:id', async ctx => {
+router.get('/patient/:id', isAuth, async ctx => {
   try {
-    const auth = ctx.isAuthenticated()
-    if (!auth) {
-      ctx.status = 401
-      ctx.body = {
-        message: 'You have no access to see this patient'
-      }
-      return
-    }
     const { id } = ctx.params
     const patient = await getUser({
       _id: id
-    })
+    }, 'email patient_info.name patient_info.last_name patient_info.phone_number patient_info.DNI patient_info.birthdate patient_info.insurance_type patient_info.location patient_info.medical_history patient_info.drug_allergy patient_info.children')
     ctx.status = 200
     ctx.body = patient
   } catch (e) {
