@@ -34,7 +34,9 @@ const config = {
 
 configPassport(passport)
 
-app.use(cors())
+app.use(cors({
+  credentials: true
+}))
 app.use(body({
   multipart: true
 }))
