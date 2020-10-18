@@ -147,7 +147,10 @@ router.put('/', isAuth, upload.single('avatar'), async ctx => {
       returnOriginal: false
     })
     ctx.status = 200
-    ctx.body = user
+    ctx.body = {
+      email: user.email,
+      patient_info: user.patient_info
+    }
   } catch (e) {
     console.log(`Error trying to edit information on /router/patient/, ${e}`)
     ctx.status = 500

@@ -90,7 +90,10 @@ router.put('/', isAuth, upload.fields([
       returnOriginal: false
     })
     ctx.status = 200
-    ctx.body = user
+    ctx.body = {
+      email: user.email,
+      doctor_info: user.doctor_info
+    }
   } catch (e) {
     console.log(`Error trying to edit information on /router/doctor/, ${e}`)
     ctx.status = 500
