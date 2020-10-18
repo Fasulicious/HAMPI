@@ -35,7 +35,6 @@ const config = {
 configPassport(passport)
 
 app.use(cors({
-  origin: '*',
   credentials: true
 }))
 app.use(body({
