@@ -15,7 +15,7 @@ const AppointmentSchema = new Schema({
   date: Date,
   qualifitacion: {
     type: String,
-    enum: ['Like', 'Dislike']
+    enum: ['like', 'dislike']
   },
   cost: {
     type: Number

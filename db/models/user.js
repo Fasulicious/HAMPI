@@ -80,7 +80,7 @@ const UserSchema = new Schema({
     },
     payment_method: {
       type: String,
-      enum: ['Suscripción']
+      enum: ['suscripcion']
     },
     subspecialty: [String],
     graduates: [String],
@@ -98,7 +98,7 @@ const UserSchema = new Schema({
       },
       status: {
         type: String,
-        enum: ['Pending', 'Paid'],
+        enum: ['pending', 'paid'],
         required: true
       },
       amount: {
