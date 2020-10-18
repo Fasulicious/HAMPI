@@ -26,7 +26,7 @@ const config = {
   autoCommit: true,
   overwrite: true,
   signed: true,
-  httpOnly: true,
+  httpOnly: false,
   rolling: true,
   renew: false,
   store: redisStore()
