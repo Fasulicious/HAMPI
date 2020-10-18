@@ -15,10 +15,12 @@ const RecipeSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'appointment'
   },
+  /*
   diagnosis: {
     type: Schema.Types.ObjectId,
     ref: 'diagnosis'
   },
+  */
   medication: [{
     medication: String,
     pills: String,

@@ -19,8 +19,13 @@ import {
 } from '../db/queries/user'
 
 import {
-  createDiagnosis
+  createDiagnosis,
+  getDiagnosis
 } from '../db/queries/diagnosis'
+
+import {
+  createRecipe, updateRecipe
+} from '../db/queries/recipe'
 
 const router = new Router({ prefix: '/doctor' })
 
@@ -243,6 +248,7 @@ router.get('/appointment/history', isAuth, async ctx => {
       },
       {
         $project: {
+          patient_id: '$patient._id',
           patient: {
             $concat: ['$patient.patient_info.name', ' ', '$patient.patient_info.last_name']
           },
@@ -299,9 +305,84 @@ router.post('/diagnosis', isAuth, async ctx => {
   }
 })
 
-// Create Recipe
-router.post('/recipe', async ctx => {
+// Get Diagnosis
+router.get('/diagnosis/:id', isAuth, async ctx => {
+  try {
+    const { id } = ctx.params
+    const diagnosis = await getDiagnosis({
+      _id: id
+    }, {
+      patient: 1,
+      ailments: 1,
+      main_condition: 1,
+      secundary_condition_1: 1,
+      secundary_condition_2: 1
+    })
+    if (diagnosis.doctor.toString() !== ctx.state.user._id.toString()) {
+      ctx.status = 401
+      ctx.body = {
+        message: 'You have no access to see this diagnosis'
+      }
+      return
+    }
+    return diagnosis
+  } catch (e) {
+    console.log(`Error trying to get diagnosis on /router/patients/diagnosis, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to get diagnosis'
+      }
+    }
+  }
+})
 
+// Create Recipe
+router.post('/recipe', isAuth, async ctx => {
+  try {
+    const {
+      patient,
+      appointment,
+      medication
+    } = ctx.request.body
+    await createRecipe({
+      patient,
+      doctor: ctx.state.user._id,
+      appointment,
+      medication
+    })
+    ctx.status = 200
+  } catch (e) {
+    console.log(`Error trying to get appointments on /router/doctor/recipe, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to create recipe'
+      }
+    }
+  }
+})
+
+// Edit Recipe
+router.put('/recipe/:id', isAuth, async ctx => {
+  try {
+    const { id } = ctx.params
+    const update = ctx.request.body
+    await updateRecipe({
+      _id: id
+    }, {
+      ...update
+    })
+    ctx.status = 200
+  } catch (e) {
+    console.log(`Error trying to edit recipe on /router/doctor/recipe, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to edit recipe'
+      }
+    }
+  }
 })
 
 // Get patient
