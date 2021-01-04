@@ -114,7 +114,7 @@ router.post('/login', async (ctx, next) => {
 })
 
 // Logout
-router.get('/logout', isAuth, async ctx => {
+router.get('/logout', async ctx => {
   try {
     ctx.logout()
     ctx.status = 200
