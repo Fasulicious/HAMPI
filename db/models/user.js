@@ -46,10 +46,9 @@ const UserSchema = new Schema({
       type: Schema.Types.ObjectId,
       ref: 'appointment'
     }],
-    children: [{
-      height: Number,
-      weight: Number
-    }]
+    children: Number,
+    weight: Number,
+    height: Number
   },
   doctor_info: {
     name: {
