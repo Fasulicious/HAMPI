@@ -69,17 +69,19 @@ router.put('/', isAuth, upload.fields([
   }
 ]), async ctx => {
   try {
+    const update = {}
     const keys = Object.keys(ctx.request.files)
-    for (const key of keys) {
-      await uploadS3(ctx.request.files[key].path, key, ctx.state.user._id)
+    if (keys || keys.length === 0) {
+      for (const key of keys) {
+        await uploadS3(ctx.request.files[key].path, key, ctx.state.user._id)
+      }
+      update['doctor_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
+      update['doctor_info.sign_stamp'] = `https://mindtec-hampi.s3.amazonaws.com/sign_stamp/${ctx.state.user._id}`
     }
     const info = ctx.request.body
-    const update = {}
     Object.keys(info).map(key => {
       update[`doctor_info.${key}`] = info[key]
     })
-    update['doctor_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
-    update['doctor_info.sign_stamp'] = `https://mindtec-hampi.s3.amazonaws.com/sign_stamp/${ctx.state.user._id}`
     const user = await updateUser({
       _id: ctx.state.user._id
     }, {

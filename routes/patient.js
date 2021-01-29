@@ -130,13 +130,15 @@ router.put('/reset-pass', async ctx => {
 // Edit profile
 router.put('/', isAuth, upload.single('avatar'), async ctx => {
   try {
-    await uploadS3(ctx.request.files.avatar.path, 'avatar', ctx.state.user._id)
-    const info = ctx.request.body
     const update = {}
+    if (ctx.request.files.avatar) {
+      await uploadS3(ctx.request.files.avatar.path, 'avatar', ctx.state.user._id)
+      update['patient_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
+    }
+    const info = ctx.request.body
     Object.keys(info).map(key => {
       update[`patient_info.${key}`] = info[key]
     })
-    update['patient_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
     const user = await updateUser({
       _id: ctx.state.user._id
     }, {
