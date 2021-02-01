@@ -15,6 +15,7 @@ import {
 import {
   createUser,
   getUser,
+  getUsers,
   updateUser
 } from '../db/queries/user'
 
@@ -119,7 +120,31 @@ router.get('/me', isAuth, async ctx => {
     ctx.status = 200
     ctx.body = user
   } catch (e) {
-    console.log(`Error trying to retrieve information on /router/patients/, ${e}`)
+    console.log(`Error trying to retrieve information on /router/doctor/, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to retrieve information'
+      }
+    }
+  }
+})
+
+router.get('/specialty/:specialty', async ctx => {
+  try {
+    const { specialty } = ctx.params
+    const users = await getUsers({
+      doctor_info: {
+        specialty
+      }
+    }, {
+      email: 1,
+      doctor_info: 1
+    })
+    ctx.status = 200
+    ctx.body = users
+  } catch (e) {
+    console.log(`Error trying to retrieve information on /router/doctor/specialty, ${e}`)
     ctx.status = 500
     ctx.body = {
       error: {
