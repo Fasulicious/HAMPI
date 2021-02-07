@@ -245,7 +245,16 @@ router.post('/appointment', isAuth, async ctx => {
       doctor_info: 1
     })
     let availability = doctorInfo.availability
-    availability = availability.filter(schedule => schedule.start !== date)
+    availability = availability.map(schedule => {
+      if (schedule.start === date) {
+        return {
+          start: schedule.start,
+          end: schedule.end,
+          taken: !schedule.taken
+        }
+      }
+      return schedule
+    })
     await updateUser({
       _id: ctx.state.user._id
     }, {
