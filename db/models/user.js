@@ -118,6 +118,14 @@ const UserSchema = new Schema({
       type: Schema.Types.ObjectId,
       ref: 'appointment'
     }],
+    availability: [{
+      start: Date,
+      end: Date,
+      taken: {
+        type: Boolean,
+        default: false
+      }
+    }],
     active: {
       type: Boolean,
       default: false

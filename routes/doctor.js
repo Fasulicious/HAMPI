@@ -134,7 +134,8 @@ router.get('/specialty/:specialty', async ctx => {
   try {
     const { specialty } = ctx.params
     const users = await getUsers({
-      'doctor_info.specialty': specialty
+      'doctor_info.specialty': specialty,
+      'doctor_info.active': true
     }, {
       email: 1,
       doctor_info: 1

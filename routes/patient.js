@@ -239,12 +239,24 @@ router.post('/appointment', isAuth, async ctx => {
       date,
       cost
     })
+    const doctorInfo = await getUser({
+      _id: doctor
+    }, {
+      doctor_info: 1
+    })
+    let availability = doctorInfo.availability
+    availability = availability.filter(schedule => schedule.start !== date)
     await updateUser({
       _id: ctx.state.user._id
     }, {
       $push: {
         'patient_info.appointments': appointment._id
       }
+    })
+    await updateUser({
+      _id: doctor
+    }, {
+      'doctor_info.availability': availability
     })
     await updateUser({
       _id: doctor
@@ -421,7 +433,7 @@ router.get('/doctor/:id', isAuth, async ctx => {
     const { id } = ctx.params
     const doctor = await getUser({
       _id: id
-    }, 'email doctor_info.name doctor_info.last_name doctor_info.phone_number doctor_info.specialty doctor_info.introduction doctor_info.subspecialty doctor_info.graduates doctor_info.masters_degrees doctor_info.doctorates doctor_info.workplace doctor_info.university')
+    }, 'email doctor_info.name doctor_info.last_name doctor_info.phone_number doctor_info.specialty doctor_info.introduction doctor_info.subspecialty doctor_info.graduates doctor_info.masters_degrees doctor_info.doctorates doctor_info.workplace doctor_info.university doctor_info.availability')
     ctx.status = 200
     ctx.body = doctor
   } catch (e) {
