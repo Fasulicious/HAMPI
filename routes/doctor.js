@@ -60,8 +60,8 @@ router.post('/', async ctx => {
   }
 })
 
-// Edit profile
-router.put('/', isAuth, upload.fields([
+// Edit image profile
+router.put('/picture', isAuth, upload.fields([
   {
     name: 'avatar'
   },
@@ -72,17 +72,11 @@ router.put('/', isAuth, upload.fields([
   try {
     const update = {}
     const keys = Object.keys(ctx.request.files)
-    if (keys || keys.length === 0) {
-      for (const key of keys) {
-        await uploadS3(ctx.request.files[key].path, key, ctx.state.user._id)
-      }
-      update['doctor_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
-      update['doctor_info.sign_stamp'] = `https://mindtec-hampi.s3.amazonaws.com/sign_stamp/${ctx.state.user._id}`
+    for (const key of keys) {
+      await uploadS3(ctx.request.files[key].path, key, ctx.state.user._id)
     }
-    const info = ctx.request.body
-    Object.keys(info).map(key => {
-      update[`doctor_info.${key}`] = info[key]
-    })
+    update['doctor_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
+    update['doctor_info.sign_stamp'] = `https://mindtec-hampi.s3.amazonaws.com/sign_stamp/${ctx.state.user._id}`
     const user = await updateUser({
       _id: ctx.state.user._id
     }, {
@@ -98,15 +92,65 @@ router.put('/', isAuth, upload.fields([
       doctor_info: user.doctor_info
     }
   } catch (e) {
-    console.log(`Error trying to edit information on /router/doctor/, ${e}`)
+    console.log(`Error trying to edit information on /router/doctor/picture, ${e}`)
     ctx.status = 500
     ctx.body = {
       error: {
-        message: 'Error trying to edit information'
+        message: 'Error trying to edit pictures'
       }
     }
   }
 })
+
+// Edit profile
+router.put('/', isAuth/*, upload.fields([
+  {
+    name: 'avatar'
+  },
+  {
+    name: 'sign_stamp'
+  }
+]) */, async ctx => {
+    try {
+      const update = {}
+      /*
+    const keys = Object.keys(ctx.request.files)
+    if (keys || keys.length === 0) {
+      for (const key of keys) {
+        await uploadS3(ctx.request.files[key].path, key, ctx.state.user._id)
+      }
+      update['doctor_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
+      update['doctor_info.sign_stamp'] = `https://mindtec-hampi.s3.amazonaws.com/sign_stamp/${ctx.state.user._id}`
+    }
+    */
+      const info = ctx.request.body
+      Object.keys(info).map(key => {
+        update[`doctor_info.${key}`] = info[key]
+      })
+      const user = await updateUser({
+        _id: ctx.state.user._id
+      }, {
+        $set: {
+          ...update
+        }
+      }, {
+        returnOriginal: false
+      })
+      ctx.status = 200
+      ctx.body = {
+        email: user.email,
+        doctor_info: user.doctor_info
+      }
+    } catch (e) {
+      console.log(`Error trying to edit information on /router/doctor/, ${e}`)
+      ctx.status = 500
+      ctx.body = {
+        error: {
+          message: 'Error trying to edit information'
+        }
+      }
+    }
+  })
 
 // Get profile
 router.get('/me', isAuth, async ctx => {
