@@ -128,13 +128,15 @@ router.put('/reset-pass', async ctx => {
 })
 
 // Edit profile
-router.put('/', isAuth, upload.single('avatar'), async ctx => {
+router.put('/', isAuth, /* upload.single('avatar'), */async ctx => {
   try {
     const update = {}
+    /*
     if (ctx.request.files.avatar) {
       await uploadS3(ctx.request.files.avatar.path, 'avatar', ctx.state.user._id)
       update['patient_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
     }
+    */
     const info = ctx.request.body
     Object.keys(info).map(key => {
       update[`patient_info.${key}`] = info[key]
@@ -159,6 +161,37 @@ router.put('/', isAuth, upload.single('avatar'), async ctx => {
     ctx.body = {
       error: {
         message: 'Error trying to edit information'
+      }
+    }
+  }
+})
+
+// Edit image profile
+router.put('/picture', isAuth, upload.single('avatar'), async ctx => {
+  try {
+    const update = {}
+    await uploadS3(ctx.request.files.avatar.path, 'avatar', ctx.state.user._id)
+    update['patient_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
+    const user = await updateUser({
+      _id: ctx.state.user._id
+    }, {
+      $set: {
+        ...update
+      }
+    }, {
+      returnOriginal: false
+    })
+    ctx.status = 200
+    ctx.body = {
+      email: user.email,
+      patient_info: user.patient_info
+    }
+  } catch (e) {
+    console.log(`Error trying to edit information on /router/patient/picture, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to edit pictures'
       }
     }
   }
