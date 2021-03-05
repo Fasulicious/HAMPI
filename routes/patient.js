@@ -279,7 +279,7 @@ router.post('/appointment', isAuth, async ctx => {
     })
     let availability = doctorInfo.doctor_info.availability
     availability = availability.map(schedule => {
-      if (schedule.start === date) {
+      if (new Date(schedule.start).valueOf() === new Date(date).valueOf()) {
         return {
           start: schedule.start,
           end: schedule.end,
