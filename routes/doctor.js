@@ -283,8 +283,8 @@ router.get('/appointment/:timestamp', isAuth, async ctx => {
         }
       }
     ])
-    const today = new Date(timestamp)
-    const tomorrow = new Date(timestamp + 24 * 60 * 60 * 1000)
+    const today = new Date(parseInt(timestamp))
+    const tomorrow = new Date(parseInt(timestamp) + 24 * 60 * 60 * 1000)
     const todayAppoinments = appointments.filter(appointment => appointment.date > today && appointment.date < tomorrow)
     ctx.status = 200
     ctx.body = todayAppoinments
