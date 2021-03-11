@@ -351,6 +351,11 @@ router.get('/appointment', isAuth, async ctx => {
           diagnosis: '$diagnosis',
           recipe: '$recipe'
         }
+      },
+      {
+        $sort: {
+          date: 1
+        }
       }
     ])
     const appointmentHistory = []
