@@ -4,6 +4,7 @@ import Router from 'koa-router'
 import bcrypt, { genSalt, hash } from 'bcryptjs'
 import multer from 'koa-multer'
 import sgMail from '@sendgrid/mail'
+import { v4 as uuidv4 } from 'uuid'
 
 import uploadS3 from '../utils'
 
@@ -170,8 +171,11 @@ router.put('/', isAuth, /* upload.single('avatar'), */async ctx => {
 router.put('/picture', isAuth, upload.single('avatar'), async ctx => {
   try {
     const update = {}
-    await uploadS3(ctx.request.files.avatar.path, 'avatar', ctx.state.user._id)
-    update['patient_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
+    const id = uuidv4()
+    // await uploadS3(ctx.request.files.avatar.path, 'avatar', ctx.state.user._id)
+    // update['patient_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
+    await uploadS3(ctx.request.files.avatar.path, 'avatar', id)
+    update['patient_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${id}`
     const user = await updateUser({
       _id: ctx.state.user._id
     }, {

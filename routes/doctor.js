@@ -3,6 +3,7 @@
 import Router from 'koa-router'
 import multer from 'koa-multer'
 import bcrypt, { genSalt, hash } from 'bcryptjs'
+import { v4 as uuidv4 } from 'uuid'
 
 import uploadS3 from '../utils'
 
@@ -31,6 +32,28 @@ import {
 const router = new Router({ prefix: '/doctor' })
 
 const upload = multer()
+
+// Get all doctors
+router.get('/', async ctx => {
+  try {
+    const doctors = await getUsers({
+      type: 'doctor'
+    }, {
+      email: 1,
+      doctor_info: 1
+    })
+    ctx.status = 200
+    ctx.body = doctors
+  } catch (e) {
+    console.log(`Error trying to retrieve information on /doctor/, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to retrieve information'
+      }
+    }
+  }
+})
 
 // Create
 router.post('/', async ctx => {
@@ -71,12 +94,17 @@ router.put('/picture', isAuth, upload.fields([
 ]), async ctx => {
   try {
     const update = {}
+    const id1 = uuidv4()
+    const id2 = uuidv4()
     const keys = Object.keys(ctx.request.files)
     for (const key of keys) {
-      await uploadS3(ctx.request.files[key].path, key, ctx.state.user._id)
+      // await uploadS3(ctx.request.files[key].path, key, ctx.state.user._id)
+      await uploadS3(ctx.request.files[key].path, key, key === 'avatar' ? id1 : id2)
     }
-    update['doctor_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
-    update['doctor_info.sign_stamp'] = `https://mindtec-hampi.s3.amazonaws.com/sign_stamp/${ctx.state.user._id}`
+    // update['doctor_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${ctx.state.user._id}`
+    // update['doctor_info.sign_stamp'] = `https://mindtec-hampi.s3.amazonaws.com/sign_stamp/${ctx.state.user._id}`
+    update['doctor_info.avatar'] = `https://mindtec-hampi.s3.amazonaws.com/avatar/${id1}`
+    update['doctor_info.sign_stamp'] = `https://mindtec-hampi.s3.amazonaws.com/sign_stamp/${id2}`
     const user = await updateUser({
       _id: ctx.state.user._id
     }, {
