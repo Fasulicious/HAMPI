@@ -492,7 +492,7 @@ router.get('/patient/:id', isAuth, async ctx => {
     const { id } = ctx.params
     const patient = await getUser({
       _id: id
-    }, 'email patient_info.name patient_info.last_name patient_info.phone_number patient_info.DNI patient_info.birthdate patient_info.insurance_type patient_info.location patient_info.medical_history patient_info.drug_allergy patient_info.children patient_info.weight patient_info.height')
+    }, 'email patient_info.name patient_info.last_name patient_info.avatar patient_info.phone_number patient_info.DNI patient_info.birthdate patient_info.insurance_type patient_info.location patient_info.medical_history patient_info.drug_allergy patient_info.children patient_info.weight patient_info.height')
     ctx.status = 200
     ctx.body = patient
   } catch (e) {
