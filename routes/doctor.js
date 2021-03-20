@@ -307,6 +307,7 @@ router.get('/appointment/:timestamp', isAuth, async ctx => {
           patient: {
             $concat: ['$patient.patient_info.name', ' ', '$patient.patient_info.last_name']
           },
+          patient_id: '$patient._id',
           date: '$date'
         }
       }

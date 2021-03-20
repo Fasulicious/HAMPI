@@ -348,6 +348,7 @@ router.get('/appointment', isAuth, async ctx => {
           doctor: {
             $concat: ['$doctor.doctor_info.name', ' ', '$doctor.doctor_info.last_name']
           },
+          doctor_id: '$doctor._id',
           specialty: '$specialty',
           date: '$date',
           qualification: '$qualification',
