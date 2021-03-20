@@ -7,6 +7,7 @@ import sgMail from '@sendgrid/mail'
 import { v4 as uuidv4 } from 'uuid'
 
 import uploadS3 from '../utils'
+import OT from '../config/videoconference'
 
 import Appointment from '../db/models/appointment'
 import Recipe from '../db/models/recipe'
@@ -269,55 +270,98 @@ router.post('/appointment', isAuth, async ctx => {
       date,
       cost
     } = ctx.request.body
-    const appointment = await createAppointment({
-      doctor,
-      patient: ctx.state.user._id,
-      specialty,
-      date,
-      cost
-    })
-    const doctorInfo = await getUser({
-      _id: doctor
-    }, {
-      doctor_info: 1
-    })
-    let availability = doctorInfo.doctor_info.availability
-    availability = availability.map(schedule => {
-      if (new Date(schedule.start).valueOf() === new Date(date).valueOf()) {
-        return {
-          start: schedule.start,
-          end: schedule.end,
-          taken: !schedule.taken
+    OT.createSession(async (err, session) => {
+      if (err) {
+        ctx.status = 500
+        ctx.body = {
+          message: 'Couldnt create the session'
         }
+        return
       }
-      return schedule
+      const appointment = await createAppointment({
+        sessionId: session.sessionId,
+        doctor,
+        patient: ctx.state.user._id,
+        specialty,
+        date,
+        cost
+      })
+      const doctorInfo = await getUser({
+        _id: doctor
+      }, {
+        doctor_info: 1
+      })
+      let availability = doctorInfo.doctor_info.availability
+      availability = availability.map(schedule => {
+        if (new Date(schedule.start).valueOf() === new Date(date).valueOf()) {
+          return {
+            start: schedule.start,
+            end: schedule.end,
+            taken: !schedule.taken
+          }
+        }
+        return schedule
+      })
+      await updateUser({
+        _id: ctx.state.user._id
+      }, {
+        $push: {
+          'patient_info.appointments': appointment._id
+        }
+      })
+      await updateUser({
+        _id: doctor
+      }, {
+        'doctor_info.availability': availability
+      })
+      await updateUser({
+        _id: doctor
+      }, {
+        $push: {
+          'doctor_info.appointments': appointment._id
+        }
+      })
+      ctx.status = 200
     })
-    await updateUser({
-      _id: ctx.state.user._id
-    }, {
-      $push: {
-        'patient_info.appointments': appointment._id
-      }
-    })
-    await updateUser({
-      _id: doctor
-    }, {
-      'doctor_info.availability': availability
-    })
-    await updateUser({
-      _id: doctor
-    }, {
-      $push: {
-        'doctor_info.appointments': appointment._id
-      }
-    })
-    ctx.status = 200
   } catch (e) {
     console.log(`Error trying to create appointment on /router/patient/appointments, ${e}`)
     ctx.status = 500
     ctx.body = {
       error: {
         message: 'Error trying to create appointment'
+      }
+    }
+  }
+})
+
+// Start Appointment
+router.get('/appointment/start/:id', isAuth, async ctx => {
+  try {
+    const { id } = ctx.params
+    const appointment = await getAppointment({
+      _id: id
+    })
+    if (appointment.patient.toString() !== ctx.state.user._id.toString()) {
+      ctx.status = 401
+      ctx.body = {
+        message: 'You have no access to start this appointment'
+      }
+      return
+    }
+    const token = OT.generateToken(appointment.sessionId, {
+      role: 'publisher'
+    })
+    ctx.status = 200
+    ctx.body = {
+      sessionId: appointment.sessionId,
+      token
+    }
+  } catch (e) {
+    console.log(`Error trying to create appointment on /router/patient/appointment/start, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to start the call'
       }
     }
   }

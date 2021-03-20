@@ -6,6 +6,7 @@ import bcrypt, { genSalt, hash } from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
 
 import uploadS3 from '../utils'
+import OT from '../config/videoconference'
 
 import Appointment from '../db/models/appointment'
 
@@ -19,6 +20,10 @@ import {
   getUsers,
   updateUser
 } from '../db/queries/user'
+
+import {
+  getAppointment
+} from '../db/queries/appointment'
 
 import {
   createDiagnosis,
@@ -276,6 +281,39 @@ router.get('/payment', isAuth, async ctx => {
     ctx.body = {
       error: {
         message: 'Error trying to get payments'
+      }
+    }
+  }
+})
+
+// start appointment
+router.get('/appointment/start/:id', isAuth, async ctx => {
+  try {
+    const { id } = ctx.params
+    const appointment = await getAppointment({
+      _id: id
+    })
+    if (appointment.doctor.toString() !== ctx.state.user._id.toString()) {
+      ctx.status = 401
+      ctx.body = {
+        message: 'You have no access to start this appointment'
+      }
+      return
+    }
+    const token = OT.generateToken(appointment.sessionId, {
+      role: 'publisher'
+    })
+    ctx.status = 200
+    ctx.body = {
+      sessionId: appointment.sessionId,
+      token
+    }
+  } catch (e) {
+    console.log(`Error trying to create appointment on /router/patient/appointment/start, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to start the call'
       }
     }
   }

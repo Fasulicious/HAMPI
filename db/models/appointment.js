@@ -3,6 +3,10 @@
 import mongoose, { Schema } from 'mongoose'
 
 const AppointmentSchema = new Schema({
+  sessionId: {
+    type: String,
+    required: true
+  },
   doctor: {
     type: Schema.Types.ObjectId,
     ref: 'user'
