@@ -5,7 +5,7 @@ import mongoose, { Schema } from 'mongoose'
 const UserSchema = new Schema({
   type: {
     type: String,
-    enum: ['doctor', 'patient'],
+    enum: ['doctor', 'patient', 'admin'],
     required: true
   },
   email: {

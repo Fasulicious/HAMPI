@@ -11,3 +11,7 @@ export const isAuth = (ctx, next) => {
   }
   return next()
 }
+
+export const isAdmin = (ctx, next) => {
+  if (ctx.state.user.type === 'admin') return next()
+}
