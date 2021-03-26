@@ -57,7 +57,8 @@ const UserSchema = new Schema({
     }],
     children: Number,
     weight: Number,
-    height: Number
+    height: Number,
+    card_token: String
   },
   doctor_info: {
     name: {
