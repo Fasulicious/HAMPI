@@ -105,7 +105,7 @@ router.post('/login', async (ctx, next) => {
     if (!err) {
       const u = await User.findOne({
         _id: user._id
-      }, 'type patient_info.avatar patient_info.name patient_info.last_name doctor_info.avatar doctor_info.name doctor_info.last_name')
+      }, 'type patient_info.avatar patient_info.name patient_info.last_name patient_info.card_token doctor_info.avatar doctor_info.name doctor_info.last_name')
       ctx.status = 200
       ctx.body = u
       return ctx.login(user)
