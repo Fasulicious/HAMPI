@@ -13,6 +13,15 @@ import {
   updateUser
 } from '../db/queries/user'
 
+import {
+  createMedication,
+  getMedications,
+  getMedication,
+  updateMedication
+} from '../db/queries/medication'
+
+import Medication from '../db/models/medication'
+
 const router = new Router({ prefix: '/admin' })
 
 router.post('/login', async (ctx, next) => {
@@ -54,10 +63,30 @@ router.get('/logout', isAuth, isAdmin, async ctx => {
     }
   }
 })
-/*
+
 router.post('/medication', isAuth, isAdmin, async ctx => {
   try {
-
+    const {
+      product_code: productCode,
+      product_name: productName,
+      concentration,
+      drugstore_name: drugstoreName,
+      simplified_drugstore_name: simplifiedDrugstoreName,
+      display,
+      portion,
+      laboratory
+    } = ctx.request.body
+    await createMedication({
+      product_code: productCode,
+      product_name: productName,
+      concentration,
+      drugstore_name: drugstoreName,
+      simplified_drugstore_name: simplifiedDrugstoreName,
+      display,
+      portion,
+      laboratory
+    })
+    ctx.status = 200
   } catch (e) {
     console.log(`Error trying to create medication on /admin/medication, ${e}`)
     ctx.status = 500
@@ -68,7 +97,90 @@ router.post('/medication', isAuth, isAdmin, async ctx => {
     }
   }
 })
+/*
+router.get('/medication/:code_or_name', isAuth, isAdmin, async ctx => {
+  const { code_or_name: codeOrName } = ctx.params
+  //const medications = await Medication.find({})
+  console.log(codeOrName)
+  const user = await User.find({
+    email: codeOrName
+  })
+  console.log(user)
+  ctx.status = 200
+  ctx.body = user
+})
 */
+
+router.get('/medication', isAuth, isAdmin, async ctx => {
+  try {
+    const medications = await getMedications({}, 'product_name product_code')
+    ctx.status = 200
+    ctx.body = medications
+  } catch (e) {
+    console.log(`Error trying to get doctors on /admin/medication, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to get medications'
+      }
+    }
+  }
+})
+
+router.get('/equivalence/:code', isAuth, isAdmin, async ctx => {
+  try {
+    const { code } = ctx.params
+    const equivalenceCodes = await getMedication({
+      product_code: code
+    }, 'equivalence')
+    const medications = await Medication.find({
+      _id: {
+        $in: equivalenceCodes
+      }
+    })
+    ctx.status = 200
+    ctx.body = medications
+  } catch (e) {
+    console.log(`Error trying to get doctors on /admin/medication, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to get medications'
+      }
+    }
+  }
+})
+
+router.put('/medication/:code', isAuth, isAdmin, async ctx => {
+  try {
+    const {
+      type,
+      equivalence
+    } = ctx.request.body
+    const { code } = ctx.params
+    let equivalenceCodes = await getMedication({
+      product_code: code
+    }, 'equivalence')
+    equivalenceCodes = type === 'remove' ? equivalenceCodes = equivalenceCodes.filter(code => code !== equivalence) : equivalenceCodes.push(equivalence)
+    await updateMedication({
+      product_code: code
+    }, {
+      equivalence: equivalenceCodes
+    }, {
+      returnOriginal: false
+    })
+    ctx.status = 200
+  } catch (e) {
+    console.log(`Error trying to get doctors on /admin/medication/:code, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to edit medications'
+      }
+    }
+  }
+})
+
 router.get('/doctor', isAuth, isAdmin, async ctx => {
   try {
     const doctors = await getUsers({

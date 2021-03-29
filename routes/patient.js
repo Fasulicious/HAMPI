@@ -32,6 +32,10 @@ import {
   getDiagnosis
 } from '../db/queries/diagnosis'
 
+import {
+  createPayment
+} from '../db/queries/payment'
+
 const router = new Router({ prefix: '/patient' })
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY)
@@ -256,6 +260,33 @@ router.post('/change-pass', isAuth, async ctx => {
     ctx.body = {
       error: {
         message: 'Error trying to change password'
+      }
+    }
+  }
+})
+
+// Create payment
+router.post('/payment', isAuth, async ctx => {
+  try {
+    const {
+      culqi_id: culqiId,
+      amount,
+      patient,
+      doctor
+    } = ctx.request.body
+    await createPayment({
+      culqi_id: culqiId,
+      amount,
+      patient,
+      doctor
+    })
+    ctx.status = 200
+  } catch (e) {
+    console.log(`Error trying to create appointment on patient/payment, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to create payment'
       }
     }
   }
