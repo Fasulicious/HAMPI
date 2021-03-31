@@ -25,6 +25,7 @@ import Medication from '../db/models/medication'
 const router = new Router({ prefix: '/admin' })
 
 router.post('/login', async (ctx, next) => {
+  console.log('entre a login')
   return passport.authenticate('local', async (err, user) => {
     if (err) {
       console.log(`Error login user on /admin/login, ${err}`)
@@ -36,7 +37,9 @@ router.post('/login', async (ctx, next) => {
       }
       return
     }
+    console.log(user)
     if (user.type !== 'admin') {
+      console.log('entre aqui')
       ctx.status = 401
       ctx.body = {
         error: {
@@ -44,7 +47,9 @@ router.post('/login', async (ctx, next) => {
         }
       }
     }
+    console.log('before status')
     ctx.status = 200
+    console.log('before return')
     return ctx.login(user)
   })(ctx, next)
 })
