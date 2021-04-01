@@ -25,7 +25,6 @@ import Medication from '../db/models/medication'
 const router = new Router({ prefix: '/admin' })
 
 router.post('/login', async (ctx, next) => {
-  console.log('entre a login')
   return passport.authenticate('local', async (err, user) => {
     if (err) {
       console.log(`Error login user on /admin/login, ${err}`)
@@ -37,9 +36,7 @@ router.post('/login', async (ctx, next) => {
       }
       return
     }
-    console.log(user)
     if (user.type !== 'admin') {
-      console.log('entre aqui')
       ctx.status = 401
       ctx.body = {
         error: {
@@ -47,9 +44,7 @@ router.post('/login', async (ctx, next) => {
         }
       }
     }
-    console.log('before status')
     ctx.status = 200
-    console.log('before return')
     return ctx.login(user)
   })(ctx, next)
 })
@@ -140,7 +135,7 @@ router.get('/equivalence/:code', isAuth, isAdmin, async ctx => {
     }, 'equivalence')
     const medications = await Medication.find({
       _id: {
-        $in: equivalenceCodes
+        $in: equivalenceCodes.equivalence
       }
     })
     ctx.status = 200
@@ -163,10 +158,11 @@ router.put('/medication/:code', isAuth, isAdmin, async ctx => {
       equivalence
     } = ctx.request.body
     const { code } = ctx.params
-    let equivalenceCodes = await getMedication({
+    let equivalenceCodes = (await getMedication({
       product_code: code
-    }, 'equivalence')
-    equivalenceCodes = type === 'remove' ? equivalenceCodes = equivalenceCodes.filter(code => code !== equivalence) : equivalenceCodes.push(equivalence)
+    }, 'equivalence')).equivalence
+    if (type === 'remove') equivalenceCodes = equivalenceCodes.filter(code => code !== equivalence)
+    else equivalenceCodes.push(equivalence)
     await updateMedication({
       product_code: code
     }, {
