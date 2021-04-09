@@ -18,8 +18,8 @@ const AppointmentSchema = new Schema({
   specialty: String,
   date: Date,
   qualifitacion: {
-    type: String,
-    enum: ['like', 'dislike']
+    type: Schema.Types.ObjectId,
+    ref: 'qualification'
   },
   cost: {
     type: Number

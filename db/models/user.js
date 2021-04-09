@@ -101,19 +101,8 @@ const UserSchema = new Schema({
       type: String
     },
     payments: [{
-      date: {
-        type: Date,
-        required: true
-      },
-      status: {
-        type: String,
-        enum: ['pending', 'paid'],
-        required: true
-      },
-      amount: {
-        type: Number,
-        required: true
-      }
+      type: Schema.Types.ObjectId,
+      ref: 'outcome'
     }],
     appointments: [{
       type: Schema.Types.ObjectId,
@@ -130,7 +119,15 @@ const UserSchema = new Schema({
     active: {
       type: Boolean,
       default: false
-    }
+    },
+    likes: [{
+      type: Schema.Types.ObjectId,
+      ref: 'qualification'
+    }],
+    dislikes: [{
+      type: Schema.Types.ObjectId,
+      ref: 'qualification'
+    }]
   }
 })
 

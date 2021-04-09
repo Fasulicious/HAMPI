@@ -9,6 +9,7 @@ import {
 } from '../middlewares/auth'
 
 import {
+  getUser,
   getUsers,
   updateUser
 } from '../db/queries/user'
@@ -20,7 +21,22 @@ import {
   updateMedication
 } from '../db/queries/medication'
 
+import {
+  getAppointmentCost,
+  updateAppointmentCost
+} from '../db/queries/appointment_cost'
+
+import Income from '../db/models/income'
+
 import Medication from '../db/models/medication'
+
+import User from '../db/models/user'
+
+import Appointment from '../db/models/appointment'
+
+import Qualification from '../db/models/qualification'
+
+import { updateOutcome } from '../db/queries/outcome'
 
 const router = new Router({ prefix: '/admin' })
 
@@ -226,6 +242,80 @@ router.put('/doctor/:id', isAuth, isAdmin, async ctx => {
   }
 })
 
+router.get('/doctor/activate/:id', isAuth, isAdmin, async ctx => {
+  try {
+    const { id } = ctx.params
+    const doctor = await getUser({
+      type: 'doctor',
+      _id: id
+    }, {
+      doctor_info: 1
+    })
+    if (doctor) {
+      const status = doctor.doctor_info.active
+      await updateUser({
+        type: 'doctor',
+        _id: id
+      }, {
+        'doctor_info.active': !status
+      }, {
+        returnOriginal: false
+      })
+      ctx.status = 200
+      return
+    }
+    ctx.status = 404
+    ctx.body = {
+      msg: 'Doctor not found'
+    }
+  } catch (e) {
+    console.log(`Error trying to activate doctor on /admin/activate, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to activate doctor'
+      }
+    }
+  }
+})
+
+router.get('/patient/activate/:id', isAuth, isAdmin, async ctx => {
+  try {
+    const { id } = ctx.params
+    const patient = await getUser({
+      type: 'patient',
+      _id: id
+    }, {
+      patient_info: 1
+    })
+    if (patient) {
+      const status = patient.patient_info.active
+      await updateUser({
+        type: 'patient',
+        _id: id
+      }, {
+        'patient_info.active': !status
+      }, {
+        returnOriginal: false
+      })
+      ctx.status = 200
+      return
+    }
+    ctx.status = 404
+    ctx.body = {
+      msg: 'Patient not found'
+    }
+  } catch (e) {
+    console.log(`Error trying to activate patient on /admin/activate, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to activate patient'
+      }
+    }
+  }
+})
+
 router.get('/patient', isAuth, isAdmin, async ctx => {
   try {
     const patients = await getUsers({
@@ -242,6 +332,294 @@ router.get('/patient', isAuth, isAdmin, async ctx => {
     ctx.body = {
       error: {
         message: 'Error trying to get patient info'
+      }
+    }
+  }
+})
+
+router.get('/cost', isAuth, isAdmin, async ctx => {
+  try {
+    const cost = (await getAppointmentCost({
+      name: 'default'
+    }, {
+      cost: 1
+    })).cost
+    ctx.status = 200
+    ctx.body = cost
+  } catch (e) {
+    console.log(`Error trying to get appointment costs on /admin/cost, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to get appointment cost'
+      }
+    }
+  }
+})
+
+router.put('/cost', isAuth, isAdmin, async ctx => {
+  try {
+    const {
+      cost
+    } = ctx.request.body
+    await updateAppointmentCost({
+      name: 'default'
+    }, {
+      cost
+    })
+    ctx.status = 200
+  } catch (e) {
+    console.log(`Error trying to edit appointment costs on /admin/cost, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to edit appointment cost'
+      }
+    }
+  }
+})
+
+router.get('/income/month/:month/year/:year', isAuth, isAuth, async ctx => {
+  try {
+    const {
+      month,
+      year
+    } = ctx.params
+    const incomes = await Income.aggregate([
+      {
+        $match: {
+          date: {
+            $gte: new Date(parseInt(year), parseInt(month)),
+            $lt: new Date(parseInt(year), parseInt(month) + 1)
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'patient',
+          foreignField: '_id',
+          as: 'patient'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'doctor',
+          foreignField: '_id',
+          as: 'doctor'
+        }
+      }
+    ])
+    ctx.status = 200
+    ctx.body = incomes
+  } catch (e) {
+    console.log(`Error trying to get incomes on /admin/income, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to get incomes'
+      }
+    }
+  }
+})
+
+router.get('/income/from/:from/to/:to', isAuth, isAuth, async ctx => {
+  try {
+    const {
+      from,
+      to
+    } = ctx.params
+    const incomes = await Income.aggregate([
+      {
+        $match: {
+          date: {
+            $gte: from,
+            $lt: to
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'patient',
+          foreignField: '_id',
+          as: 'patient'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'doctor',
+          foreignField: '_id',
+          as: 'doctor'
+        }
+      }
+    ])
+    ctx.status = 200
+    ctx.body = incomes
+  } catch (e) {
+    console.log(`Error trying to get incomes on /admin/income, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to get incomes'
+      }
+    }
+  }
+})
+
+router.get('/outcome/:email', isAuth, isAdmin, async ctx => {
+  try {
+    const { email } = ctx.params
+    const doctor = await User.aggregate([
+      {
+        $match: {
+          email
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '$doctor_info.payments',
+          foreignField: '_id',
+          as: 'payment'
+        }
+      },
+      {
+        $unwind: '$payment'
+      }
+    ])
+    ctx.status = 200
+    ctx.body = doctor
+  } catch (e) {
+    console.log(`Error trying to get outcomes on /admin/outcome, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to get outcomes'
+      }
+    }
+  }
+})
+
+router.put('/outcome/:id', isAuth, isAdmin, async ctx => {
+  try {
+    const { id } = ctx.params
+    const { date } = ctx.request.body
+    await updateOutcome({
+      _id: id
+    }, {
+      paid_date: date,
+      status: 'paid'
+    })
+    ctx.status = 200
+  } catch (e) {
+    console.log(`Error trying to create outcomes on /admin/outcome, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to create outcomes'
+      }
+    }
+  }
+})
+
+router.get('/appointment', isAuth, isAdmin, async ctx => {
+  try {
+    const apps = await Appointment.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'doctor',
+          foreignField: '_id',
+          as: 'doctor'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'doctor',
+          foreignField: '_id',
+          as: 'doctor'
+        }
+      },
+      {
+        $project: {
+          doctor_name: {
+            $concat: ['$doctor.doctor_info.name', ' ', '$doctor.doctor_info.last_name']
+          },
+          doctor_email: '$doctor.email',
+          specialty: '$doctor.doctor_info.specialty',
+          patient_name: {
+            $concat: ['$patient.patient_info.name', ' ', '$patient.patient_info.last_name']
+          },
+          patient_email: '$patient.email',
+          date: '$date'
+        }
+      }
+    ])
+    ctx.status = 200
+    ctx.body = apps
+  } catch (e) {
+    console.log(`Error trying to get appointments on /admin/appointment, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to get appointments'
+      }
+    }
+  }
+})
+
+router.get('/dislike/:doctor', isAuth, isAdmin, async ctx => {
+  try {
+    const { doctor } = ctx.params
+    const ids = await getUser({
+      _id: doctor
+    }, 'doctor_info.dislikes')
+    // verificar dislikes
+    const dislikes = await Qualification.aggregate([
+      {
+        $match: {
+          $in: ids
+        }
+      },
+      {
+        $lookup: {
+          from: 'appointments',
+          localField: 'appointment',
+          foreignField: '_id',
+          as: 'appointment'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '$appointment.patient',
+          foreignField: '_id',
+          as: 'patient'
+        }
+      },
+      {
+        $project: {
+          name: {
+            $concat: ['$patient.name', ' ', '$patient.last_name']
+          },
+          email: '$patient.email',
+          phone_number: '$patient.phone_number',
+          date: '$appointment.date'
+        }
+      }
+    ])
+    ctx.status = 200
+    ctx.body = dislikes
+  } catch (e) {
+    console.log(`Error trying to get qualification on /admin/dislike, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to get qualification'
       }
     }
   }

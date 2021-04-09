@@ -40,7 +40,7 @@ router.post('/contact', async ctx => {
     }
   }
 })
-
+/*
 router.get('/find/:specialty', async ctx => {
   const {
     specialty
@@ -89,7 +89,7 @@ router.get('/find/:specialty', async ctx => {
   ctx.status = 200
   ctx.body = doctors
 })
-
+*/
 // Login
 router.post('/login', async (ctx, next) => {
   return passport.authenticate('local', async (err, user) => {

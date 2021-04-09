@@ -2,14 +2,22 @@
 
 import mongoose, { Schema } from 'mongoose'
 
-const PaymentSchema = new Schema({
+const IncomeSchema = new Schema({
   culqi_id: {
     type: String,
+    required: true
+  },
+  date: {
+    type: Date,
     required: true
   },
   amount: {
     type: Number,
     required: true
+  },
+  appointment: {
+    type: Schema.Types.ObjectId,
+    ref: 'appointment'
   },
   patient: {
     type: Schema.Types.ObjectId,
@@ -21,4 +29,4 @@ const PaymentSchema = new Schema({
   }
 })
 
-export default mongoose.model('payment', PaymentSchema)
+export default mongoose.model('income', IncomeSchema)

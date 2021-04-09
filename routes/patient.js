@@ -33,8 +33,20 @@ import {
 } from '../db/queries/diagnosis'
 
 import {
-  createPayment
-} from '../db/queries/payment'
+  createIncome
+} from '../db/queries/income'
+
+import {
+  createOutcome
+} from '../db/queries/outcome'
+
+import {
+  getAppointmentCost
+} from '../db/queries/appointment_cost'
+
+import {
+  createQualification
+} from '../db/queries/qualification'
 
 const router = new Router({ prefix: '/patient' })
 
@@ -270,15 +282,35 @@ router.post('/payment', isAuth, async ctx => {
   try {
     const {
       culqi_id: culqiId,
+      date,
       amount,
+      appointment,
       patient,
       doctor
     } = ctx.request.body
-    await createPayment({
+    await createIncome({
       culqi_id: culqiId,
+      date,
       amount,
+      appointment,
       patient,
       doctor
+    })
+    const cost = await (await getAppointmentCost({
+      name: 'default'
+    }, {
+      cost: 1
+    })).cost
+    const outcome = await createOutcome({
+      doctor,
+      amount: amount * cost.doctor_percentage / 100
+    })
+    await updateUser({
+      _id: doctor
+    }, {
+      $push: {
+        'doctor_info.payments': outcome._id
+      }
     })
     ctx.status = 200
   } catch (e) {
@@ -589,11 +621,33 @@ router.put('/appointment/:id', isAuth, async ctx => {
       }
       return
     }
-    await updateAppointment({
+    const quali = await createQualification({
+      type: qualification,
+      appointment: id
+    })
+    const app = await updateAppointment({
       _id: id
     }, {
-      qualification
+      qualification: quali._id
     })
+    if (qualification === 'like') {
+      await updateUser({
+        _id: app.doctor
+      }, {
+        $push: {
+          'doctor_info.likes': quali._id
+        }
+      })
+    }
+    if (qualification === 'dislike') {
+      await updateUser({
+        _id: app.doctor
+      }, {
+        $push: {
+          'doctor_info.dislikes': quali._id
+        }
+      })
+    }
     ctx.status = 200
   } catch (e) {
     console.log(`Error trying rate appointment on /router/patients/appointment, ${e}`)
