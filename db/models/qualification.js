@@ -14,4 +14,4 @@ const QualificationSchema = new Schema({
   }
 })
 
-export default mongoose('qualification', QualificationSchema)
+export default mongoose.model('qualification', QualificationSchema)
