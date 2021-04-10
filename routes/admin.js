@@ -28,6 +28,8 @@ import {
 
 import Income from '../db/models/income'
 
+import Outcome from '../db/models/outcome'
+
 import Medication from '../db/models/medication'
 
 import User from '../db/models/user'
@@ -400,6 +402,44 @@ router.get('/income/month/:month/year/:year', isAuth, isAuth, async ctx => {
           localField: 'patient',
           foreignField: '_id',
           as: 'patient'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'doctor',
+          foreignField: '_id',
+          as: 'doctor'
+        }
+      }
+    ])
+    ctx.status = 200
+    ctx.body = incomes
+  } catch (e) {
+    console.log(`Error trying to get incomes on /admin/income, ${e}`)
+    ctx.status = 500
+    ctx.body = {
+      error: {
+        message: 'Error trying to get incomes'
+      }
+    }
+  }
+})
+
+router.get('/outcome/month/:month/year/:year', isAuth, isAuth, async ctx => {
+  try {
+    const {
+      month,
+      year
+    } = ctx.params
+    const incomes = await Outcome.aggregate([
+      {
+        $match: {
+          date: {
+            $gte: new Date(parseInt(year), parseInt(month)),
+            $lt: new Date(parseInt(year), parseInt(month) + 1)
+          },
+          status: 'paid'
         }
       },
       {
