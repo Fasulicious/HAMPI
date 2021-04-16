@@ -296,11 +296,9 @@ router.post('/payment', isAuth, async ctx => {
       patient,
       doctor
     })
-    const cost = await (await getAppointmentCost({
+    const cost = await getAppointmentCost({
       name: 'default'
-    }, {
-      cost: 1
-    })).cost
+    })
     const outcome = await createOutcome({
       doctor,
       amount: amount * cost.doctor_percentage / 100
