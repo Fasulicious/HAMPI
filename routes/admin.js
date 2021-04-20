@@ -405,12 +405,18 @@ router.get('/income/month/:month/year/:year', isAuth, isAuth, async ctx => {
         }
       },
       {
+        $unwind: '$patient'
+      },
+      {
         $lookup: {
           from: 'users',
           localField: 'doctor',
           foreignField: '_id',
           as: 'doctor'
         }
+      },
+      {
+        $unwind: '$doctor'
       }
     ])
     ctx.status = 200
@@ -449,6 +455,9 @@ router.get('/outcome/month/:month/year/:year', isAuth, isAuth, async ctx => {
           foreignField: '_id',
           as: 'doctor'
         }
+      },
+      {
+        $unwind: '$doctor'
       }
     ])
     ctx.status = 200
@@ -488,12 +497,18 @@ router.get('/income/from/:from/to/:to', isAuth, isAuth, async ctx => {
         }
       },
       {
+        $unwind: '$patient'
+      },
+      {
         $lookup: {
           from: 'users',
           localField: 'doctor',
           foreignField: '_id',
           as: 'doctor'
         }
+      },
+      {
+        $unwind: '$doctor'
       }
     ])
     ctx.status = 200
@@ -577,12 +592,18 @@ router.get('/appointment', isAuth, isAdmin, async ctx => {
         }
       },
       {
+        $unwind: '$doctor'
+      },
+      {
         $lookup: {
           from: 'users',
-          localField: 'doctor',
+          localField: 'patient',
           foreignField: '_id',
-          as: 'doctor'
+          as: 'patient'
         }
+      },
+      {
+        $unwind: '$patient'
       },
       {
         $project: {
@@ -634,12 +655,18 @@ router.get('/dislike/:doctor', isAuth, isAdmin, async ctx => {
         }
       },
       {
+        $unwind: '$appointment'
+      },
+      {
         $lookup: {
           from: 'users',
           localField: '$appointment.patient',
           foreignField: '_id',
           as: 'patient'
         }
+      },
+      {
+        $unwind: '$patient'
       },
       {
         $project: {
