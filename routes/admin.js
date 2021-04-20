@@ -441,11 +441,18 @@ router.get('/outcome/month/:month/year/:year', isAuth, isAuth, async ctx => {
     const incomes = await Outcome.aggregate([
       {
         $match: {
-          date: {
-            $gte: new Date(parseInt(year), parseInt(month)),
-            $lt: new Date(parseInt(year), parseInt(month) + 1)
-          },
-          status: 'paid'
+          $or: [
+            {
+              date: {
+                $gte: new Date(parseInt(year), parseInt(month)),
+                $lt: new Date(parseInt(year), parseInt(month) + 1)
+              },
+              status: 'paid'
+            },
+            {
+              status: 'pending'
+            }
+          ]
         }
       },
       {
@@ -458,6 +465,17 @@ router.get('/outcome/month/:month/year/:year', isAuth, isAuth, async ctx => {
       },
       {
         $unwind: '$doctor'
+      },
+      {
+        $project: {
+          doctor_name: {
+            $concat: ['$doctor.doctor_info.name', ' ', '$doctor.doctor_info.last_name']
+          },
+          doctor_email: '$doctor.email',
+          amount: '$amount',
+          date: '$paid_date',
+          status: '$status'
+        }
       }
     ])
     ctx.status = 200
