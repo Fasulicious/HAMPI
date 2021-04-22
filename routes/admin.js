@@ -131,7 +131,7 @@ router.get('/medication/:code_or_name', isAuth, isAdmin, async ctx => {
 
 router.get('/medication', isAuth, isAdmin, async ctx => {
   try {
-    const medications = await getMedications({}, 'product_name product_code')
+    const medications = await getMedications({}, 'product_name product_code concentration drugstore_name simplified_drugstore_name display portion laboratory')
     ctx.status = 200
     ctx.body = medications
   } catch (e) {
